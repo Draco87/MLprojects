@@ -1,0 +1,144 @@
+import pandas as pd
+from sklearn.datasets import load_iris
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.cluster import KMeans
+import numpy as np
+from sklearn.metrics import classification_report
+
+# Read the csv file
+url = (
+    "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data"
+)
+
+iris = pd.read_csv(url, header=None)
+
+iris2 = load_iris()
+
+# Reduce the data into DataFrame
+df=pd.DataFrame(data=iris2.data, columns=['sepal length','sepal width','petal length','petal width'])
+df['target']=pd.Series(iris2.target)
+df['target_names']=pd.Series(iris2.target_names)
+species = []
+for i in range(len(df)):
+    if df.iloc[i]['target'] == 0:
+        species.append('setosa')
+    elif df.iloc[i]['target'] == 1:
+        species.append('versicolor')
+    elif df.iloc[i]['target'] == 2:
+        species.append('virginica')
+df['Species'] = species
+x=iris2.data
+
+# Generate plots
+plt.scatter(x=df['sepal length'], y=df['sepal width'] ,c=iris2.target, cmap='gist_rainbow') #try using cmap='rainbow'
+
+plt.xlabel('Sepal Width', fontsize=18)
+plt.ylabel('Sepal length', fontsize=18)
+
+# Generate a pairplot
+sns.pairplot(df.drop(['target'],axis=1), hue='Species', height=2.5, markers = ["8","s","D"])
+
+# Use the elbow method to estimate k
+#To start, let’s arbitrarily assign the value of k as 5. We will implement k-means clustering using k=5.
+
+kmeans5 = KMeans(n_clusters=5, random_state = 0)
+y = kmeans5.fit_predict(x)
+print(y)
+
+print(kmeans5.cluster_centers_)
+
+# Generate scatterplot of the clusters
+plt.scatter(x[y == 0,0], x[y==0,1], s = 15, c= 'red', label = 'Cluster_1')
+plt.scatter(x[y == 1,0], x[y==1,1], s = 15, c= 'blue', label = 'Cluster_2')
+plt.scatter(x[y == 2,0], x[y==2,1], s = 15, c= 'green', label = 'Cluster_3')
+plt.scatter(x[y == 3,0], x[y==3,1], s = 15, c= 'cyan', label = 'Cluster_4')
+plt.scatter(x[y == 4,0], x[y==4,1], s = 15, c= 'magenta', label = 'Cluster_5')
+
+plt.scatter(kmeans5.cluster_centers_[:,0], kmeans5.cluster_centers_[:,1], s = 25, c = 'yellow', label = 'Centroids')
+plt.legend()
+plt.show()
+
+#The output graph of the Elbow method is shown below. Note that the shape of elbow is approximately formed at k=3
+#Plotting the results onto a line graph, allowing us to observe 'The elbow'
+Error =[]
+for i in range(1, 11):
+    kmeans11 = KMeans(n_clusters = i, max_iter = 300, n_init = 10, random_state = 0).fit(x)
+    # kmeans11.fit(x)
+    Error.append(kmeans11.inertia_)
+import matplotlib.pyplot as plt
+plt.plot(range(1, 11), Error)
+plt.title('Elbow-Method using WCSS with k=1-11')
+plt.xlabel('No of clusters')
+plt.ylabel('Error') #within cluster sum of squares
+plt.show()
+
+# As you can see from the above plot, the optimal value of k is between 2 and 4, as the elbow-like shape is formed at k=3 in the above graph.
+# Let’s implement k-means again using k=3
+kmeans3 = KMeans(n_clusters=3, random_state=21) 
+y = kmeans3.fit_predict(x)
+print(y)
+
+print(kmeans3.cluster_centers_)
+
+
+#Applying kmeans to the dataset / Creating the kmeans classifier
+plt.scatter(x[y == 0,0], x[y==0,1], s = 15, c= 'red', label = 'Cluster_1')
+plt.scatter(x[y == 1,0], x[y==1,1], s = 15, c= 'blue', label = 'Cluster_2')
+plt.scatter(x[y == 2,0], x[y==2,1], s = 15, c= 'green', label = 'Cluster_3')
+plt.scatter(kmeans3.cluster_centers_[:,0], kmeans3.cluster_centers_[:,1], s = 25, c = 'yellow', label = 'Centroids')
+
+plt.legend()
+
+plt.show()
+
+
+# Plot the identified clusters and compare with the answers
+fig, axes = plt.subplots(1, 2, figsize=(14,6))
+axes[0].scatter(x=df['sepal length'], y=df['sepal width'], c=y, cmap='gist_rainbow',edgecolor='k', s=150) #you can also try cmap='rainbow'
+axes[1].scatter(x=df['sepal length'], y=df['sepal width'], c=iris2.target, cmap='gist_rainbow',edgecolor='k', s=150)
+axes[0].scatter(kmeans3.cluster_centers_[:,0], kmeans3.cluster_centers_[:,1], s = 180, c = 'yellow', label = 'Centroids')
+axes[1].scatter(kmeans3.cluster_centers_[:,0], kmeans3.cluster_centers_[:,1], s = 180, c = 'yellow', label = 'Centroids')
+axes[0].set_xlabel('Sepal length', fontsize=18)
+axes[0].set_ylabel('Sepal width', fontsize=18)
+axes[1].set_xlabel('Sepal length', fontsize=18)
+axes[1].set_ylabel('Sepal width', fontsize=18)
+axes[0].tick_params(direction='in', length=10, width=5, colors='k', labelsize=20)
+axes[1].tick_params(direction='in', length=10, width=5, colors='k', labelsize=20)
+axes[0].set_title('Actual', fontsize=18)
+axes[1].set_title('Predicted', fontsize=18)
+
+
+relabel = np.choose(kmeans3.labels_, [1, 0, 2]).astype(np.int64)
+
+
+# Plot the identified clusters and compare with the answers
+fig, axes = plt.subplots(1, 2, figsize=(14,6))
+axes[0].scatter(x=df['sepal length'], y=df['sepal width'], c=relabel, cmap='gist_rainbow',edgecolor='k', s=150) #you can also try cmap='rainbow'
+axes[1].scatter(x=df['sepal length'], y=df['sepal width'], c=iris2.target, cmap='gist_rainbow',edgecolor='k', s=150)
+axes[0].scatter(kmeans3.cluster_centers_[:,0], kmeans3.cluster_centers_[:,1], s = 180, c = 'yellow', label = 'Centroids')
+axes[1].scatter(kmeans3.cluster_centers_[:,0], kmeans3.cluster_centers_[:,1], s = 180, c = 'yellow', label = 'Centroids')
+axes[0].set_xlabel('Sepal length', fontsize=18)
+axes[0].set_ylabel('Sepal width', fontsize=18)
+axes[1].set_xlabel('Sepal length', fontsize=18)
+axes[1].set_ylabel('Sepal width', fontsize=18)
+axes[0].tick_params(direction='in', length=10, width=5, colors='k', labelsize=20)
+axes[1].tick_params(direction='in', length=10, width=5, colors='k', labelsize=20)
+axes[0].set_title('Actual', fontsize=18)
+axes[1].set_title('Predicted', fontsize=18)
+plt.show()
+
+print(classification_report(iris2.target, relabel))
+
+# Plot the identified clusters and compare with the answers
+fig, axes = plt.subplots(1, 2, figsize=(14,6))
+axes[0].scatter(x=df['petal length'], y=df['petal width'], c=y, cmap='gist_rainbow',edgecolor='k', s=150)
+axes[1].scatter(x=df['petal length'], y=df['petal width'], c=iris2.target, cmap='jet',edgecolor='k', s=150)
+axes[0].set_xlabel('Petal length', fontsize=18)
+axes[0].set_ylabel('Petal width', fontsize=18)
+axes[1].set_xlabel('Petal length', fontsize=18)
+axes[1].set_ylabel('Petal width', fontsize=18)
+axes[0].tick_params(direction='in', length=10, width=5, colors='k', labelsize=20)
+axes[1].tick_params(direction='in', length=10, width=5, colors='k', labelsize=20)
+axes[0].set_title('Actual', fontsize=18)
+axes[1].set_title('Predicted', fontsize=18)
