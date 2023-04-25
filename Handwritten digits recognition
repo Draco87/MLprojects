@@ -1,0 +1,67 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Jun 14 14:48:14 2022
+
+@author: farza
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+import cv2
+import os
+
+import keras
+from keras.datasets import mnist
+import tensorflow as tf
+from tensorflow.keras.utils import to_categorical
+
+from keras.models import Sequential
+from keras.layers import Dense, Flatten
+
+(X_train, y_train), (X_test, y_test) = mnist.load_data()
+
+X_train = X_train.astype(np.float32)/255    #normalization pixel range: 0 - 255
+X_test = X_test.astype(np.float32)/255
+
+model = tf.keras.models.Sequential()
+
+model.add(tf.keras.layers.Flatten(input_shape = (28,28)))  # Flatten to flatten 28 pixels into a same line
+model.add(tf.keras.layers.Dense(128, activation = 'relu')) # Dense: Basic ANN layer # 128 = no. of neurons in this case # REctifiedLinearUnit  
+model.add(tf.keras.layers.Dense(128, activation = 'relu')) 
+model.add(tf.keras.layers.Dense(10, activation = 'softmax'))  # #activation fn > 1 ??? But Why?
+
+"""try activation = 'sigmoid' """
+
+# module.compile(optimizer, loss, metrices) 
+# optimizer -> minimize the errors, maximise efficiency, faster o/p
+# loss fn -> finding errors in learning process
+# metrics -> enables to evaluate the performance of your model
+model.compile(optimizer = 'adam', loss = "sparse_categorical_crossentropy", metrics = ["accuracy"])
+#model.compile(optimizer="Adam", loss="mse", metrics=["mae", "acc"])
+x=X_train
+y=y_train
+#model.fit(X_train, y_train, epochs = 3) 
+#model.fit(x=None, y=None) 
+
+model.fit(x, y, epochs=3)
+
+model.save("Handwritten.model") 
+
+model = tf.keras.models.load_model("Handwritten.model")
+
+loss, accuracy = model.evaluate(X_test, y_test) 
+
+print(loss)
+print(accuracy)
+
+fpath = "C:/Users/farza/OneDrive/Desktop/DIGITS"
+
+#while os.path.isfile("/digit{image_no}.png"):
+for ipath in os.listdir(fpath):
+      img = cv2.imread(os.path.join(fpath,ipath))[:,:,0]
+      img = np.invert(np.array([img]))
+      prediction = model.predict(img)
+      print(f"This digit is probably a {np.argmax(prediction)} ")
+      plt.imshow(img[0], cmap = plt.cm.binary)
+      plt.show()
+  
